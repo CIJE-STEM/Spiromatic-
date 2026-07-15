@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Spiromatic Simulator</title>
+<style>
+  :root { --navy:#0F2461; --blue:#1E5AE8; --orange:#FF6A1F; --lblue:#DCE7FF;
+          --lorange:#FFE3D1; --gray:#5A6478; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; background:#F4F7FE; margin:0;
+         padding:24px; color:var(--navy); }
+  h1 { font-size:28px; margin:0 0 4px; }
+  h1 span { color:var(--orange); }
+  .sub { color:var(--gray); margin:0 0 20px; font-size:15px; }
+  .wrap { display:flex; gap:20px; flex-wrap:wrap; max-width:1200px; margin:0 auto; }
+  .panel { background:white; border-radius:16px; padding:18px;
+           box-shadow:0 2px 10px rgba(15,36,97,.08); }
+  .views { display:flex; gap:16px; flex:1 1 640px; }
+  .view { text-align:center; flex:1; }
+  .view .cap { font-size:13px; color:var(--gray); font-weight:bold; margin-bottom:6px; }
+  canvas { width:100%; height:auto; border-radius:12px; background:white; }
+  .controls { flex:0 1 320px; min-width:280px; }
+  .controls h2 { font-size:15px; letter-spacing:2px; color:var(--orange); margin:0 0 12px; }
+  label { display:block; font-size:13px; font-weight:bold; margin:14px 0 4px; }
+  label small { color:var(--gray); font-weight:normal; }
+  select, input[type=range] { width:100%; }
+  select { padding:8px; border-radius:8px; border:1.5px solid var(--lblue);
+           font-size:15px; font-weight:bold; color:var(--navy); }
+  .val { float:right; color:var(--blue); }
+  .btns { display:flex; gap:8px; margin-top:18px; }
+  button { flex:1; padding:10px; border:none; border-radius:10px; font-size:14px;
+           font-weight:bold; cursor:pointer; }
+  #play { background:var(--blue); color:white; }
+  #reset { background:var(--lblue); color:var(--navy); }
+  .stats { display:flex; gap:10px; margin-top:16px; }
+  .stat { flex:1; background:var(--lblue); border-radius:10px; padding:8px 10px; }
+  .stat.o { background:var(--lorange); }
+  .stat .l { font-size:11px; color:var(--gray); font-weight:bold; }
+  .stat .v { font-size:18px; font-weight:bold; }
+  .rule { margin-top:16px; background:var(--navy); color:white; border-radius:10px;
+          padding:10px 12px; font-family:"Courier New",monospace; font-size:13px;
+          min-height:38px; }
+  .rule b { color:var(--orange); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="flex-basis:100%">
+    <h1>SPIROMATIC <span>SIMULATOR</span></h1>
+    <p class="sub">The machine on screen: spin the paper, slide the pen. Change the numbers — watch the shape change. Then put your favorite numbers into the Arduino sketch.</p>
+  </div>
+
+  <div class="panel views">
+    <div class="view">
+      <div class="cap">MACHINE VIEW — paper spins, pen slides</div>
+      <canvas id="machine" width="560" height="560"></canvas>
+    </div>
+    <div class="view">
+      <div class="cap">WHAT APPEARS ON THE PAPER</div>
+      <canvas id="paper" width="560" height="560"></canvas>
+    </div>
+  </div>
+
+  <div class="panel controls">
+    <h2>CONTROL PANEL</h2>
+
+    <label>Shape recipe</label>
+    <select id="shape">
+      <option value="circle">Circle (pen holds still)</option>
+      <option value="flower" selected>Flower</option>
+      <option value="heart">Heart</option>
+      <option value="square">Square</option>
+      <option value="triangle">Triangle</option>
+      <option value="star">Star</option>
+      <option value="ellipse">Ellipse (orbit!)</option>
+      <option value="mandala">Mandala (20 turns)</option>
+      <option value="spiral">Breathing spiral</option>
+    </select>
+
+    <label>Petals / points <small>(flower, star, mandala)</small>
+      <span class="val" id="kOut">3</span></label>
+    <input type="range" id="k" min="2" max="9" step="1" value="3">
+
+    <label>Push size <small>(how far the arm swings)</small>
+      <span class="val" id="ampOut">0.4</span></label>
+    <input type="range" id="amp" min="0.1" max="0.8" step="0.05" value="0.4">
+
+    <label>Platter speed <span class="val" id="spdOut">4</span></label>
+    <input type="range" id="spd" min="1" max="12" step="1" value="4">
+
+    <div class="btns">
+      <button id="play">Pause</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="l">PLATTER ANGLE</div><div class="v" id="angOut">0&deg;</div></div>
+      <div class="stat o"><div class="l">PEN DISTANCE</div><div class="v" id="distOut">1.00&times;</div></div>
+    </div>
+
+    <div class="rule" id="rule"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var NAVY="#0F2461", BLUE="#1E5AE8", ORANGE="#FF6A1F", GRAY="#8B93A1";
+  var mc = document.getElementById('machine').getContext('2d');
+  var pc = document.getElementById('paper').getContext('2d');
+  var C = 280, R = 225, BASE = 120;
+  var theta = 0, playing = true, trace = [];
+  var el = function(id){ return document.getElementById(id); };
+  var shapeEl = el('shape'), kEl = el('k'), ampEl = el('amp'), spdEl = el('spd');
+
+  var rules = {
+    circle:   function(){ return "distance = 1.0   // that's it!"; },
+    flower:   function(k,a){ return "distance = 1 + <b>" + a + "</b> × cos( <b>" + k + "</b> × angle )"; },
+    heart:    function(){ return "distance = 0.5 + 0.5 × (1 + cos(angle))"; },
+    square:   function(){ return "distance = 1 ÷ cos(slice)   // corners every 90°"; },
+    triangle: function(){ return "distance = 1 ÷ cos(slice)   // corners every 120°"; },
+    star:     function(k){ return "square trick, corners every " + Math.round(360/k) + "°, pushed 3×"; },
+    ellipse:  function(k,a){ return "distance = 0.9 ÷ (1 + <b>" + a + "</b> × cos(angle))"; },
+    mandala:  function(k,a){ return "distance = 1 + <b>" + a + "</b> × cos( <b>" + k + ".1</b> × angle )"; },
+    spiral:   function(k){ return "flower(<b>" + k + "</b> petals) × a little growth each turn"; }
+  };
+
+  function dist(tDeg){
+    var s = shapeEl.value, k = +kEl.value, a = +ampEl.value;
+    var t = tDeg * Math.PI / 180;
+    function corner(ce, cap){
+      var sl = ((tDeg % ce) + ce) % ce - ce/2;
+      return Math.min(1/Math.cos(sl * Math.PI/180), cap);
+    }
+    if (s === "circle")   return 1;
+    if (s === "flower")   return (1 + a * Math.cos(k * t)) / (1 + a);
+    if (s === "heart")    return (0.5 + 0.5 * (1 + Math.cos(t))) / 1.5;
+    if (s === "square")   return corner(90, 1.5) / 1.5 + 0.25;
+    if (s === "triangle") return corner(120, 2.0) / 2.0 + 0.25;
+    if (s === "star"){
+      var p = corner(360/k, 1.25);
+      return (1 + (p - 1) * 3) / 1.75;
+    }
+    if (s === "ellipse")  return 0.9 / (1 + a * Math.cos(t)) / (0.9/(1-a) > 1.6 ? 0.9/(1-a)/1.6 : 1);
+    if (s === "mandala")  return (1 + a * Math.cos((k + 0.1) * t)) / (1 + a);
+    if (s === "spiral"){
+      var grow = Math.min(0.35 + 0.07 * tDeg/360, 1.0);
+      return grow * (1 + 0.3 * Math.cos(k * t)) / 1.3;
+    }
+    return 1;
+  }
+  function maxTurns(){
+    var s = shapeEl.value;
+    return s === "mandala" ? 20 : (s === "spiral" ? 10 : 1e9);
+  }
+
+  function drawBase(ctx){
+    ctx.clearRect(0, 0, 560, 560);
+    ctx.beginPath(); ctx.arc(C, C, R, 0, Math.PI*2);
+    ctx.fillStyle = "white"; ctx.fill();
+    ctx.strokeStyle = BLUE; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = BLUE;
+    ctx.beginPath(); ctx.arc(C, C, 4, 0, Math.PI*2); ctx.fill();
+  }
+  function drawTrace(ctx, rot){
+    ctx.save(); ctx.translate(C, C); if (rot) ctx.rotate(theta * Math.PI/180);
+    ctx.strokeStyle = ORANGE; ctx.lineJoin = "round";
+    ctx.lineWidth = maxTurns() < 1e9 ? 1.2 : 3;
+    ctx.globalAlpha = maxTurns() < 1e9 ? 0.8 : 1;
+    ctx.beginPath();
+    for (var i = 0; i < trace.length; i++){
+      if (i === 0) ctx.moveTo(trace[i][0], trace[i][1]);
+      else ctx.lineTo(trace[i][0], trace[i][1]);
+    }
+    ctx.stroke(); ctx.globalAlpha = 1; ctx.restore();
+  }
+  function frame(){
+    if (playing && theta < maxTurns() * 360){
+      var steps = +spdEl.value;
+      for (var s = 0; s < steps && theta < maxTurns() * 360; s++){
+        theta += 0.5;
+        var d = dist(theta) * BASE * 1.55;
+        var a2 = (-90 - theta) * Math.PI/180;
+        trace.push([d * Math.cos(a2), d * Math.sin(a2)]);
+      }
+      if (trace.length > 45000) trace = trace.slice(trace.length - 45000);
+      el('angOut').textContent = Math.round(theta % 360) + "°";
+      el('distOut').textContent = dist(theta).toFixed(2) + "×";
+    }
+    drawBase(mc); drawTrace(mc, true);
+    var d = dist(theta) * BASE * 1.55;
+    mc.strokeStyle = GRAY; mc.setLineDash([5,5]); mc.lineWidth = 1.2;
+    mc.beginPath(); mc.moveTo(C, C - R - 18); mc.lineTo(C, C); mc.stroke();
+    mc.setLineDash([]);
+    mc.strokeStyle = "#B8860B"; mc.strokeStyle = "#D9A441";
+    mc.lineWidth = 9; mc.lineCap = "round";
+    mc.beginPath(); mc.moveTo(C, C - R - 18); mc.lineTo(C, C - d + 10); mc.stroke();
+    mc.fillStyle = ORANGE;
+    mc.beginPath(); mc.moveTo(C - 6, C - d - 20); mc.lineTo(C + 6, C - d - 20);
+    mc.lineTo(C, C - d); mc.closePath(); mc.fill();
+    drawBase(pc); drawTrace(pc, false);
+    if (trace.length && theta < maxTurns() * 360){
+      var last = trace[trace.length - 1];
+      pc.fillStyle = ORANGE;
+      pc.beginPath(); pc.arc(C + last[0], C + last[1], 5, 0, Math.PI*2); pc.fill();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function updateRule(){
+    var k = +kEl.value, a = +ampEl.value;
+    el('rule').innerHTML = rules[shapeEl.value](k, a);
+    el('kOut').textContent = k;
+    el('ampOut').textContent = a;
+    el('spdOut').textContent = spdEl.value;
+  }
+  function reset(){ theta = 0; trace = []; updateRule(); }
+
+  shapeEl.addEventListener('change', reset);
+  kEl.addEventListener('input', reset);
+  ampEl.addEventListener('input', reset);
+  spdEl.addEventListener('input', updateRule);
+  el('reset').addEventListener('click', reset);
+  el('play').addEventListener('click', function(){
+    playing = !playing;
+    this.textContent = playing ? "Pause" : "Play";
+  });
+
+  updateRule(); frame();
+})();
+</script>
+</body>
+</html>
