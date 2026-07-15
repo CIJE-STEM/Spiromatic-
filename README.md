@@ -42,4 +42,4 @@ Arduino Uno, 28BYJ-48 stepper motor(s) with ULN2003 driver board(s), SG90 micro 
 
 ---
 
-*Developed by CIJE. Student work photos are from TABC.*
+*Developed by Robert Jones and Orly Nadler of CIJE. Student work photos are from TABC.*
