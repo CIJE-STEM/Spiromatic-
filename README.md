@@ -1,3 +1,5 @@
+<img src="cije_logo.png" alt="CIJE" width="220">
+
 # The Spiromatic
 
 A stepper + servo motor powered art machine that uses math to draw flowers, hearts, squares, mandalas, and shapes nobody has invented yet. Built from upcycled materials around an Arduino, and taught as a full curriculum unit (engineering → code → math → art).
@@ -42,4 +44,4 @@ Arduino Uno, 28BYJ-48 stepper motor(s) with ULN2003 driver board(s), SG90 micro 
 
 ---
 
-*Developed by Robert Jones and Orly Nadler of CIJE. Student work photos are from TABC.*
+*Developed by CIJE. Student work photos are from TABC.*
