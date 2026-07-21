@@ -26,7 +26,7 @@ A stepper + servo motor powered art machine that uses math to draw flowers, hear
 
 | File | Description |
 |---|---|
-| `spiromatic_stepper_servo.ino` | The simplified build (stepper platter + servo arm): a smooth spiral pattern. Fully commented for 8th graders. Good first upload. |
+| `spiromatic_stepper_servo.ino` | The simplified build (stepper platter + servo arm): a smooth spiral pattern. Fully commented for 9th graders. Good first upload. |
 | `spiromatic_square.ino` | Draws a square on a spinning platter using `distance = 1 ÷ cos(angle)`. Includes discussion prompts and a triangle challenge. |
 | `spiromatic_shapes.ino` | One sketch, six shape recipes (flower, heart, star, ellipse, mandala, breathing spiral). Students change `SHAPE = 1–6` and tune the marked numbers. |
 
