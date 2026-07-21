@@ -15,6 +15,7 @@ A stepper + servo motor powered art machine that uses math to draw flowers, hear
 | `Spiromatic_Teachers_Guide_v2.docx` | The full curriculum guide: objectives, materials, stepper motor background, Lessons 1–5, build progression reference photos, pen setup, extensions, and a troubleshooting appendix. **Start here.** |
 | `spiromatic_teacher_answer_key.docx` | Worked answers for all six Lesson 5 challenges, grading guidance for the open-ended challenge, and in-class troubleshooting. |
 | `spiromatic_math_deck.pptx` | 25-slide classroom deck for Lesson 5 ("Drawing with Math"): the math explained gently with animations, stepper vs. servo, the code line by line, and leveled challenges. GIF animations play in slideshow mode (F5). |
+| `Spiromatic_genesis_v2.pptx` | The workshop/PD story deck: the Spiromatic's evolution with real classroom photos and videos, ending with the cosine reboot and a handoff to the math deck. Present this first, then the math deck. (Media compressed for web.) |
 
 ### Student-facing tools
 
